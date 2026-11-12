@@ -1,15 +1,66 @@
+
 const ZONA_COLORS = { 'SUDESTE': '#facc15', 'LESTE': '#3b82f6', 'SUL': '#22c55e', 'NORTE': '#ec4899' };
 const DESEMPENHOS_PERMITIDOS = ['NL', 'N1', 'N2', 'N3'];
+
+const DB_NAME = 'EduPainelDB';
+const DB_VERSION = 1;
+let db;
 
 let appData = { g1: [], g2: [], lastUpdate: null, fileName: null };
 const uiState = { g1: { page: 1, limit: 15, search: '' }, g2: { page: 1, limit: 15, search: '' }, charts: {} };
 
 document.addEventListener('DOMContentLoaded', async () => {
+  await initDB();
+  await loadDataFromDB();
   setupListeners();
-  await loadDefaultSpreadsheet();
 });
 
+function initDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onerror = e => reject(e);
+    request.onsuccess = e => { db = e.target.result; resolve(); };
+    request.onupgradeneeded = e => {
+      let db = e.target.result;
+      if (!db.objectStoreNames.contains('store')) db.createObjectStore('store');
+    };
+  });
+}
+
+function idbGet(key) {
+  return new Promise(resolve => {
+    const tx = db.transaction('store', 'readonly');
+    const req = tx.objectStore('store').get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+function idbPut(key, value) {
+  return new Promise(resolve => {
+    const tx = db.transaction('store', 'readwrite');
+    tx.objectStore('store').put(value, key);
+    tx.oncomplete = () => resolve();
+  });
+}
+
+async function loadDataFromDB() {
+  const g1 = await idbGet('g1') || [];
+  const g2 = await idbGet('g2') || [];
+  const meta = await idbGet('meta') || {};
+  
+  appData.g1 = g1; appData.g2 = g2;
+  appData.lastUpdate = meta.date; appData.fileName = meta.name;
+  
+  if (appData.lastUpdate) {
+    document.getElementById('last-update-date').innerHTML = `${appData.lastUpdate}<br><small class="text-white-50">${appData.fileName}</small>`;
+    refreshAll();
+  }
+}
+
 function setupListeners() {
+  document.getElementById('file-input').addEventListener('change', handleFileUpload);
+  
   document.querySelectorAll('.g1-filter').forEach(el => el.addEventListener('change', () => { uiState.g1.page = 1; renderG1(); }));
   document.getElementById('g1-search').addEventListener('input', e => { uiState.g1.search = e.target.value.toLowerCase(); uiState.g1.page = 1; renderG1Table(); });
   document.getElementById('g1-limit').addEventListener('change', e => { uiState.g1.limit = parseInt(e.target.value); uiState.g1.page = 1; renderG1Table(); });
@@ -62,38 +113,52 @@ function updateMultiButton(containerId, btnId) {
    else btn.textContent = vals.length + ' selecionados';
 }
 
-async function loadDefaultSpreadsheet() {
-  try {
-    // Procura o arquivo Excel na mesma pasta no GitHub
-    const response = await fetch('DESEMPENHO_ESTUDANTE_2.xlsx');
-    if (!response.ok) throw new Error('Arquivo padrão não encontrado');
-    const arrayBuffer = await response.arrayBuffer();
-    
-    const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
-
-    let rawG1 = [];
-    if (workbook.SheetNames.includes('ALUNOS NL A N3 (4° AO 9°)')) {
-      const sheet = workbook.Sheets['ALUNOS NL A N3 (4° AO 9°)'];
-      rawG1 = cleanData(XLSX.utils.sheet_to_json(sheet, { header: 1 }), true);
+function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  if (appData.g1.length > 0) {
+    if (!confirm("Isso irá substituir os dados atuais pelos da nova planilha. Deseja continuar?")) {
+      e.target.value = ''; return;
     }
-
-    let rawG2 = [];
-    if (workbook.SheetNames.includes('PSICOLER')) {
-      const sheet = workbook.Sheets['PSICOLER'];
-      rawG2 = cleanData(XLSX.utils.sheet_to_json(sheet, { header: 1 }), false);
-    }
-
-    appData.g1 = rawG1; 
-    appData.g2 = rawG2;
-    appData.lastUpdate = 'Carregado automaticamente';
-    appData.fileName = 'DESEMPENHO_ESTUDANTE_2.xlsx';
-
-    document.getElementById('last-update-date').innerHTML = `Automático<br><small class="text-white-50">Base Oficial</small>`;
-    refreshAll();
-  } catch (err) {
-    console.error("Erro ao carregar planilha padrão:", err);
-    showAlert("Aviso: Suba o arquivo 'DESEMPENHO_ESTUDANTE_2.xlsx' para o repositório.", "warning");
   }
+
+  const reader = new FileReader();
+  reader.onload = async function(evt) {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      let rawG1 = [];
+      if (workbook.SheetNames.includes('ALUNOS NL A N3 (4° AO 9°)')) {
+        const sheet = workbook.Sheets['ALUNOS NL A N3 (4° AO 9°)'];
+        rawG1 = cleanData(XLSX.utils.sheet_to_json(sheet, { header: 1 }), true);
+      } else alert("Atenção: Guia 'ALUNOS NL A N3 (4° AO 9°)' não encontrada.");
+
+      let rawG2 = [];
+      if (workbook.SheetNames.includes('PSICOLER')) {
+        const sheet = workbook.Sheets['PSICOLER'];
+        rawG2 = cleanData(XLSX.utils.sheet_to_json(sheet, { header: 1 }), false);
+      } else alert("Atenção: Guia 'PSICOLER' não encontrada.");
+
+      appData.g1 = rawG1; appData.g2 = rawG2;
+      appData.lastUpdate = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR');
+      appData.fileName = file.name;
+
+      await idbPut('g1', rawG1); await idbPut('g2', rawG2);
+      await idbPut('meta', { date: appData.lastUpdate, name: appData.fileName });
+
+      document.getElementById('last-update-date').innerHTML = `${appData.lastUpdate}<br><small class="text-white-50">${appData.fileName}</small>`;
+      showAlert("Planilha carregada e processada com sucesso!", "success");
+      e.target.value = '';
+      
+      refreshAll();
+    } catch (err) {
+      console.error(err);
+      showAlert("Erro ao processar o arquivo. Estrutura inválida.", "danger");
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function cleanData(rawJson, uniqueByMatricula) {
@@ -117,6 +182,7 @@ function cleanData(rawJson, uniqueByMatricula) {
     let escola = String(obj['UNIDADE DE ENSINO'] || '').trim();
     obj['UNIDADE DE ENSINO'] = escola;
     
+    // ZONA (direto da planilha)
     let zona = String(obj['ZONA'] || '').trim().toUpperCase();
     obj['ZONA'] = zona ? zona : 'NÃO INFORMADO';
     
@@ -361,9 +427,9 @@ function updateChart(id, type, labels, datasets) {
 }
 
 function renderPagination(id, current, max, prefix) {
-  let h = `<li class="page-item ${current===1?'disabled':''}"><a class="page-link" href="#" onclick="changePage('${prefix}',${current-1});return false;">«</a></li>`;
+  let h = `<li class="page-item ${current===1?'disabled':''}"><a class="page-link" href="#" onclick="changePage('${prefix}',${current-1});return false;">&laquo;</a></li>`;
   for(let i=Math.max(1, current-2); i<=Math.min(max, current+2); i++) h += `<li class="page-item ${i===current?'active':''}"><a class="page-link" href="#" onclick="changePage('${prefix}',${i});return false;">${i}</a></li>`;
-  h += `<li class="page-item ${current===max?'disabled':''}"><a class="page-link" href="#" onclick="changePage('${prefix}',${current+1});return false;">»</a></li>`;
+  h += `<li class="page-item ${current===max?'disabled':''}"><a class="page-link" href="#" onclick="changePage('${prefix}',${current+1});return false;">&raquo;</a></li>`;
   document.getElementById(id).innerHTML = h;
 }
 window.changePage = function(prefix, p) { uiState[prefix].page = p; if (prefix === 'g1') renderG1Table(); if (prefix === 'g2') renderG2Table(); }

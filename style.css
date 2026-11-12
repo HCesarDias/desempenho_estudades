@@ -1,0 +1,41 @@
+
+:root {
+  --blue-900: #0f172a;
+  --bg-main: #f8fafc;
+  --border-light: #e2e8f0;
+  
+  --zona-sudeste: #facc15;
+  --zona-leste: #3b82f6;
+  --zona-sul: #22c55e;
+  --zona-norte: #ec4899;
+  
+  --purple: #8b5cf6;
+}
+
+body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color: #334155; }
+.text-sm { font-size: 0.85rem; }
+.fs-7 { font-size: 0.8rem; }
+
+.top-header { background-color: var(--blue-900); border-bottom: 1px solid rgba(255,255,255,0.1); }
+.custom-tabs .nav-link { color: #cbd5e1; font-weight: 500; border-radius: 6px; padding: 0.5rem 1rem; margin-right: 0.5rem; }
+.custom-tabs .nav-link:hover { color: #fff; background: rgba(255,255,255,0.1); }
+.custom-tabs .nav-link.active { background-color: #fff; color: var(--blue-900); font-weight: 600; }
+
+.card-custom { border: 1px solid var(--border-light); border-radius: 8px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
+.card-kpi { background: #fff; border: 1px solid var(--border-light); border-radius: 8px; padding: 1.25rem; height: 100%; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; justify-content: center; }
+.card-kpi .title { font-size: 0.75rem; text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+.card-kpi .value { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+.bg-purple { background-color: var(--purple) !important; }
+
+.badge-sudeste { background-color: var(--zona-sudeste); color: #000; }
+.badge-leste { background-color: var(--zona-leste); color: #fff; }
+.badge-sul { background-color: var(--zona-sul); color: #fff; }
+.badge-norte { background-color: var(--zona-norte); color: #fff; }
+
+.chart-wrapper { position: relative; height: 300px; width: 100%; }
+.table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
+
+/* Multiselect Dropdown adjustments */
+.custom-scroll { max-height: 250px; overflow-y: auto; }
+.dropdown-item { cursor: pointer; }
+.dropdown-item:hover { background-color: #f1f5f9; }

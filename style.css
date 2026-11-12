@@ -35,7 +35,6 @@ body { font-family: 'Inter', sans-serif; background-color: var(--bg-main); color
 .chart-wrapper { position: relative; height: 300px; width: 100%; }
 .table th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 600; }
 
-/* Multiselect Dropdown adjustments */
 .custom-scroll { max-height: 250px; overflow-y: auto; }
 .dropdown-item { cursor: pointer; }
 .dropdown-item:hover { background-color: #f1f5f9; }

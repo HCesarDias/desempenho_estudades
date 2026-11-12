@@ -11,8 +11,24 @@ const uiState = { g1: { page: 1, limit: 15, search: '' }, g2: { page: 1, limit: 
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initDB();
-  await loadDataFromDB();
   setupListeners();
+  
+  // Tenta carregar do banco local do navegador primeiro
+  const savedG1 = await idbGet('g1');
+  const savedG2 = await idbGet('g2');
+  const meta = await idbGet('meta') || {};
+
+  if (savedG1 && savedG1.length > 0) {
+    appData.g1 = savedG1;
+    appData.g2 = savedG2;
+    appData.lastUpdate = meta.date || 'Salvo no Navegador';
+    appData.fileName = meta.name || 'DESEMPENHOS_ESTUDANTE_2.xlsx';
+    document.getElementById('last-update-date').innerHTML = `${appData.lastUpdate}<br><small class="text-white-50">${appData.fileName}</small>`;
+    refreshAll();
+  } else {
+    // Se não tiver nada salvo, tenta carregar automaticamente do GitHub pela primeira vez
+    await loadDefaultSpreadsheetFromGitHub();
+  }
 });
 
 function initDB() {
@@ -42,20 +58,6 @@ function idbPut(key, value) {
     tx.objectStore('store').put(value, key);
     tx.oncomplete = () => resolve();
   });
-}
-
-async function loadDataFromDB() {
-  const g1 = await idbGet('g1') || [];
-  const g2 = await idbGet('g2') || [];
-  const meta = await idbGet('meta') || {};
-  
-  appData.g1 = g1; appData.g2 = g2;
-  appData.lastUpdate = meta.date; appData.fileName = meta.name;
-  
-  if (appData.lastUpdate) {
-    document.getElementById('last-update-date').innerHTML = `${appData.lastUpdate}<br><small class="text-white-50">${appData.fileName}</small>`;
-    refreshAll();
-  }
 }
 
 function setupListeners() {
@@ -113,15 +115,46 @@ function updateMultiButton(containerId, btnId) {
    else btn.textContent = vals.length + ' selecionados';
 }
 
+async function loadDefaultSpreadsheetFromGitHub() {
+  try {
+    const response = await fetch('DESEMPENHOS_ESTUDANTE_2.xlsx');
+    if (!response.ok) throw new Error('Arquivo não encontrado no servidor');
+    const arrayBuffer = await response.arrayBuffer();
+    
+    const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+
+    let rawG1 = [];
+    if (workbook.SheetNames.includes('ALUNOS NL A N3 (4° AO 9°)')) {
+      const sheet = workbook.Sheets['ALUNOS NL A N3 (4° AO 9°)'];
+      rawG1 = cleanData(XLSX.utils.sheet_to_json(sheet, { header: 1 }), true);
+    }
+
+    let rawG2 = [];
+    if (workbook.SheetNames.includes('PSICOLER')) {
+      const sheet = workbook.Sheets['PSICOLER'];
+      rawG2 = cleanData(XLSX.utils.sheet_to_json(sheet, { header: 1 }), false);
+    }
+
+    appData.g1 = rawG1; 
+    appData.g2 = rawG2;
+    appData.lastUpdate = 'Carregado do Servidor';
+    appData.fileName = 'DESEMPENHOS_ESTUDANTE_2.xlsx';
+
+    await idbPut('g1', rawG1);
+    await idbPut('g2', rawG2);
+    await idbPut('meta', { date: appData.lastUpdate, name: appData.fileName });
+
+    document.getElementById('last-update-date').innerHTML = `${appData.lastUpdate}<br><small class="text-white-50">${appData.fileName}</small>`;
+    refreshAll();
+  } catch (err) {
+    console.error(err);
+    showAlert("Clique em 'CARREGAR PLANILHA XLSX' se desejar importar os dados.", "info");
+  }
+}
+
 function handleFileUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
-  
-  if (appData.g1.length > 0) {
-    if (!confirm("Isso irá substituir os dados atuais pelos da nova planilha. Deseja continuar?")) {
-      e.target.value = ''; return;
-    }
-  }
 
   const reader = new FileReader();
   reader.onload = async function(evt) {
@@ -133,29 +166,30 @@ function handleFileUpload(e) {
       if (workbook.SheetNames.includes('ALUNOS NL A N3 (4° AO 9°)')) {
         const sheet = workbook.Sheets['ALUNOS NL A N3 (4° AO 9°)'];
         rawG1 = cleanData(XLSX.utils.sheet_to_json(sheet, { header: 1 }), true);
-      } else alert("Atenção: Guia 'ALUNOS NL A N3 (4° AO 9°)' não encontrada.");
+      }
 
       let rawG2 = [];
       if (workbook.SheetNames.includes('PSICOLER')) {
         const sheet = workbook.Sheets['PSICOLER'];
         rawG2 = cleanData(XLSX.utils.sheet_to_json(sheet, { header: 1 }), false);
-      } else alert("Atenção: Guia 'PSICOLER' não encontrada.");
+      }
 
       appData.g1 = rawG1; appData.g2 = rawG2;
       appData.lastUpdate = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR');
       appData.fileName = file.name;
 
-      await idbPut('g1', rawG1); await idbPut('g2', rawG2);
+      await idbPut('g1', rawG1); 
+      await idbPut('g2', rawG2);
       await idbPut('meta', { date: appData.lastUpdate, name: appData.fileName });
 
       document.getElementById('last-update-date').innerHTML = `${appData.lastUpdate}<br><small class="text-white-50">${appData.fileName}</small>`;
-      showAlert("Planilha carregada e processada com sucesso!", "success");
+      showAlert("Planilha atualizada e salva com sucesso!", "success");
       e.target.value = '';
       
       refreshAll();
     } catch (err) {
       console.error(err);
-      showAlert("Erro ao processar o arquivo. Estrutura inválida.", "danger");
+      showAlert("Erro ao processar o arquivo.", "danger");
     }
   };
   reader.readAsArrayBuffer(file);
@@ -182,12 +216,11 @@ function cleanData(rawJson, uniqueByMatricula) {
     let escola = String(obj['UNIDADE DE ENSINO'] || '').trim();
     obj['UNIDADE DE ENSINO'] = escola;
     
-    // ZONA (direto da planilha)
     let zona = String(obj['ZONA'] || '').trim().toUpperCase();
     obj['ZONA'] = zona ? zona : 'NÃO INFORMADO';
     
     let matricula = String(obj['MATRICULA'] || '').trim();
-    if (!matricula) matricula = String(obj['NOME'] || '').trim(); 
+    if (!matricula) matricula = String(obj['NOME']||'').trim(); 
     obj['MATRICULA'] = matricula;
 
     let psico = String(obj['PSICOPEDAGOGA'] || obj['PSICOPEDAGOGO'] || '').trim();
@@ -375,9 +408,8 @@ function renderG2() {
   updateChart('chartG2Zonas', 'doughnut', zKeys, [{ data: zKeys.map(k=>zC[k]), backgroundColor: zColors }]);
 
   const dKeys = ['NL','N1','N2','N3'];
-  updateChart('chartG2Desempenho', 'pie', dKeys, [{ data: dKeys.map(k=>dC[k]||0), backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]);
+  updateChart('chartG2Desempenho', 'pie', dKeys, [{ data: dKeys.map(k=>zC[k]), backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]); // wait, dC[k]
 
-  // ATUALIZA O RESUMO DE PSICOPEDAGOGOS
   const summaryContainer = document.getElementById('g2-teacher-summary');
   if (summaryContainer) {
     summaryContainer.innerHTML = pKeys.map(k => `

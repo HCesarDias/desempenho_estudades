@@ -6,7 +6,7 @@ const DB_VERSION = 1;
 let db;
 
 let appData = { g1: [], g2: [], lastUpdate: null, fileName: null };
-const uiState = { g1: { page: 1, limit: 15, search: '' }, g2: { page: 1, limit: 15, search: '' }, charts: {} };
+const uiState = { g1: { page: 1, limit: 15, search: '' }, g2: { page: 1, limit: 15, search: '' }, charts: {}, selectedGaugeIndex: null };
 
 document.addEventListener('DOMContentLoaded', async () => {
   await initDB();
@@ -278,7 +278,10 @@ function resetFilters(prefix) {
   uiState[prefix].search = '';
   document.getElementById(`${prefix}-search`).value = '';
   if (prefix === 'g1') renderG1();
-  if (prefix === 'g2') renderG2();
+  if (prefix === 'g2') {
+    uiState.selectedGaugeIndex = null;
+    renderG2();
+  }
 }
 
 // GUIA 1 
@@ -406,8 +409,23 @@ function renderG2() {
   const zColors = zKeys.map(k => ZONA_COLORS[k] || '#cbd5e1');
   updateChart('chartG2Zonas', 'doughnut', zKeys, [{ data: zKeys.map(k=>zC[k]), backgroundColor: zColors }]);
 
-  const dKeys = ['NL','N1','N2','N3'];
-  updateChart('chartG2Desempenho', 'doughnut', dKeys, [{ data: dKeys.map(k=>dC[k]||0), backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]);
+  // Ordenar desempenhos do menor para o maior mantendo suas cores originais
+  const baseDesemp = [
+    { label: 'NL', val: dC['NL'] || 0, color: '#ef4444' },
+    { label: 'N1', val: dC['N1'] || 0, color: '#f59e0b' },
+    { label: 'N2', val: dC['N2'] || 0, color: '#3b82f6' },
+    { label: 'N3', val: dC['N3'] || 0, color: '#10b981' }
+  ];
+  baseDesemp.sort((a, b) => a.val - b.val);
+
+  const sortedDKeys = baseDesemp.map(item => item.label);
+  const sortedDValues = baseDesemp.map(item => item.val);
+  const sortedDColors = baseDesemp.map(item => item.color);
+
+  // Reseta o ponteiro caso o filtro altere os dados
+  uiState.selectedGaugeIndex = null;
+
+  updateChart('chartG2Desempenho', 'doughnut', sortedDKeys, [{ data: sortedDValues, backgroundColor: sortedDColors }]);
 
   const summaryContainer = document.getElementById('g2-teacher-summary');
   if (summaryContainer) {
@@ -451,22 +469,95 @@ function renderG2Table() {
   renderPagination('g2-pagination', uiState.g2.page, maxPage, 'g2');
 }
 
+// Plugin customizado para desenhar o ponteiro do velocímetro ao clicar
+const gaugeNeedlePlugin = {
+  id: 'gaugeNeedle',
+  afterDatasetDraw(chart) {
+    if (chart.canvas.id !== 'chartG2Desempenho') return;
+    const idx = uiState.selectedGaugeIndex;
+    if (idx === null || idx === undefined) return;
+
+    const meta = chart.getDatasetMeta(0);
+    const arc = meta.data[idx];
+    if (!arc) return;
+
+    const { ctx } = chart;
+    const cx = arc.x;
+    const cy = arc.y;
+    const angle = (arc.startAngle + arc.endAngle) / 2;
+    const radius = arc.outerRadius * 0.85;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+
+    // Desenha a agulha do ponteiro
+    ctx.beginPath();
+    ctx.moveTo(0, -4);
+    ctx.lineTo(radius, 0);
+    ctx.lineTo(0, 4);
+    ctx.fillStyle = '#0f172a';
+    ctx.fill();
+
+    // Desenha o pino central
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#0f172a';
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Exibe o valor e o nível no centro da base do velocímetro
+    const label = chart.data.labels[idx];
+    const val = chart.data.datasets[0].data[idx];
+    ctx.save();
+    ctx.font = 'bold 14px Inter, sans-serif';
+    ctx.fillStyle = '#0f172a';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${label}: ${val}`, cx, cy - 16);
+    ctx.restore();
+  }
+};
+
 function updateChart(id, type, labels, datasets) {
   if (uiState.charts[id]) uiState.charts[id].destroy();
   const ctx = document.getElementById(id).getContext('2d');
   
   let extraOptions = {};
+  let plugins = [];
+
   if (id === 'chartG2Desempenho') {
+    plugins = [gaugeNeedlePlugin];
     extraOptions = {
       rotation: -90,
       circumference: 180,
-      cutout: '65%'
+      cutout: '65%',
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          const clickedIndex = elements[0].index;
+          uiState.selectedGaugeIndex = (uiState.selectedGaugeIndex === clickedIndex) ? null : clickedIndex;
+          uiState.charts[id].update();
+        }
+      },
+      plugins: {
+        legend: {
+          onClick: (e, legendItem, legend) => {
+            const clickedIndex = legendItem.index;
+            uiState.selectedGaugeIndex = (uiState.selectedGaugeIndex === clickedIndex) ? null : clickedIndex;
+            legend.chart.update();
+          }
+        }
+      }
     };
   }
 
   uiState.charts[id] = new Chart(ctx, { 
     type: type, 
     data: { labels, datasets }, 
+    plugins: plugins,
     options: { 
       responsive: true, 
       maintainAspectRatio: false,

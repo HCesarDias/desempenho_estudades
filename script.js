@@ -408,8 +408,7 @@ function renderG2() {
   updateChart('chartG2Zonas', 'doughnut', zKeys, [{ data: zKeys.map(k=>zC[k]), backgroundColor: zColors }]);
 
   const dKeys = ['NL','N1','N2','N3'];
-  updateChart('chartG2Desempenho', 'pie', dKeys, [{ data: dKeys.map(k=>zC[k]), backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]); // wait, dC[k]
-
+ updateChart('chartG2Desempenho', 'pie', dKeys, [{ data: dKeys.map(k=>dC[k]||0), backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]);
   const summaryContainer = document.getElementById('g2-teacher-summary');
   if (summaryContainer) {
     summaryContainer.innerHTML = pKeys.map(k => `

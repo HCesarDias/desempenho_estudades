@@ -1,4 +1,3 @@
-
 const ZONA_COLORS = { 'SUDESTE': '#facc15', 'LESTE': '#3b82f6', 'SUL': '#22c55e', 'NORTE': '#ec4899' };
 const DESEMPENHOS_PERMITIDOS = ['NL', 'N1', 'N2', 'N3'];
 
@@ -408,7 +407,8 @@ function renderG2() {
   updateChart('chartG2Zonas', 'doughnut', zKeys, [{ data: zKeys.map(k=>zC[k]), backgroundColor: zColors }]);
 
   const dKeys = ['NL','N1','N2','N3'];
- updateChart('chartG2Desempenho', 'doughnut', dKeys, [{ data: dKeys.map(k=>dC[k]||0), backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]);
+  updateChart('chartG2Desempenho', 'doughnut', dKeys, [{ data: dKeys.map(k=>dC[k]||0), backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]);
+
   const summaryContainer = document.getElementById('g2-teacher-summary');
   if (summaryContainer) {
     summaryContainer.innerHTML = pKeys.map(k => `
@@ -454,7 +454,25 @@ function renderG2Table() {
 function updateChart(id, type, labels, datasets) {
   if (uiState.charts[id]) uiState.charts[id].destroy();
   const ctx = document.getElementById(id).getContext('2d');
-  uiState.charts[id] = new Chart(ctx, { type: type, data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false } });
+  
+  let extraOptions = {};
+  if (id === 'chartG2Desempenho') {
+    extraOptions = {
+      rotation: -90,
+      circumference: 180,
+      cutout: '65%'
+    };
+  }
+
+  uiState.charts[id] = new Chart(ctx, { 
+    type: type, 
+    data: { labels, datasets }, 
+    options: { 
+      responsive: true, 
+      maintainAspectRatio: false,
+      ...extraOptions
+    } 
+  });
 }
 
 function renderPagination(id, current, max, prefix) {

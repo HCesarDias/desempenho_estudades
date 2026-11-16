@@ -1,6 +1,9 @@
 const ZONA_COLORS = { 'SUDESTE': '#facc15', 'LESTE': '#3b82f6', 'SUL': '#22c55e', 'NORTE': '#ec4899' };
 const DESEMPENHOS_PERMITIDOS = ['NL', 'N1', 'N2', 'N3'];
 
+// COLE AQUI A URL DO SEU GOOGLE APPS SCRIPT IMPLANTADO COMO APP DA WEB:
+const GOOGLE_SHEETS_API_URL = 'COLE_AQUI_SUA_URL_DO_APPS_SCRIPT';
+
 const DB_NAME = 'EduPainelDB';
 const DB_VERSION = 1;
 let db;
@@ -12,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await initDB();
   setupListeners();
   
-  // Tenta carregar do banco local do navegador primeiro
+  // 1. Exibe imediatamente o que estiver no cache local (velocidade instantânea)
   const savedG1 = await idbGet('g1');
   const savedG2 = await idbGet('g2');
   const meta = await idbGet('meta') || {};
@@ -20,12 +23,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (savedG1 && savedG1.length > 0) {
     appData.g1 = savedG1;
     appData.g2 = savedG2;
-    appData.lastUpdate = meta.date || 'Salvo no Navegador';
-    appData.fileName = meta.name || 'DESEMPENHOS_ESTUDANTE_2.xlsx';
+    appData.lastUpdate = meta.date || 'Cache Local';
+    appData.fileName = meta.name || 'Google Sheets';
     document.getElementById('last-update-date').innerHTML = `${appData.lastUpdate}<br><small class="text-white-50">${appData.fileName}</small>`;
     refreshAll();
-  } else {
-    // Se não tiver nada salvo, tenta carregar automaticamente do GitHub pela primeira vez
+  }
+
+  // 2. Busca as atualizações mais recentes direto do Google Sheets em segundo plano
+  if (GOOGLE_SHEETS_API_URL && GOOGLE_SHEETS_API_URL.startsWith('http')) {
+    await syncFromGoogleSheets();
+  } else if (!savedG1 || savedG1.length === 0) {
+    // Fallback caso a URL ainda não tenha sido colada
     await loadDefaultSpreadsheetFromGitHub();
   }
 });
@@ -114,6 +122,42 @@ function updateMultiButton(containerId, btnId) {
    else btn.textContent = vals.length + ' selecionados';
 }
 
+// SINCRONIZAÇÃO AUTOMÁTICA COM GOOGLE SHEETS
+async function syncFromGoogleSheets() {
+  const statusEl = document.getElementById('last-update-date');
+  const prevHtml = statusEl.innerHTML;
+  statusEl.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Sincronizando Sheets...`;
+
+  try {
+    const response = await fetch(GOOGLE_SHEETS_API_URL);
+    if (!response.ok) throw new Error('Falha na comunicação com o Google Sheets');
+    const payload = await response.json();
+
+    if (payload.error) throw new Error(payload.error);
+
+    const rawG1 = cleanData(payload.g1 || [], true);
+    const rawG2 = cleanData(payload.g2 || [], false);
+
+    appData.g1 = rawG1;
+    appData.g2 = rawG2;
+    appData.lastUpdate = new Date().toLocaleDateString('pt-BR') + ' às ' + new Date().toLocaleTimeString('pt-BR');
+    appData.fileName = 'Google Sheets (Ao Vivo)';
+
+    await idbPut('g1', rawG1);
+    await idbPut('g2', rawG2);
+    await idbPut('meta', { date: appData.lastUpdate, name: appData.fileName });
+
+    statusEl.innerHTML = `${appData.lastUpdate}<br><small class="text-white-50">${appData.fileName}</small>`;
+    refreshAll();
+  } catch (err) {
+    console.error('Erro na sincronização Sheets:', err);
+    statusEl.innerHTML = prevHtml || 'Offline (Usando Cache)';
+    if (appData.g1.length === 0) {
+      showAlert("Não foi possível conectar ao Google Sheets. Verifique a URL da API.", "warning");
+    }
+  }
+}
+
 async function loadDefaultSpreadsheetFromGitHub() {
   try {
     const response = await fetch('DESEMPENHOS_ESTUDANTE_2.xlsx');
@@ -147,7 +191,7 @@ async function loadDefaultSpreadsheetFromGitHub() {
     refreshAll();
   } catch (err) {
     console.error(err);
-    showAlert("Clique em 'CARREGAR PLANILHA XLSX' se desejar importar os dados.", "info");
+    showAlert("Configure o link do Google Sheets ou carregue uma planilha XLSX.", "info");
   }
 }
 
@@ -182,7 +226,7 @@ function handleFileUpload(e) {
       await idbPut('meta', { date: appData.lastUpdate, name: appData.fileName });
 
       document.getElementById('last-update-date').innerHTML = `${appData.lastUpdate}<br><small class="text-white-50">${appData.fileName}</small>`;
-      showAlert("Planilha atualizada e salva com sucesso!", "success");
+      showAlert("Planilha local carregada com sucesso!", "success");
       e.target.value = '';
       
       refreshAll();
@@ -195,7 +239,7 @@ function handleFileUpload(e) {
 }
 
 function cleanData(rawJson, uniqueByMatricula) {
-  if (rawJson.length < 2) return [];
+  if (!rawJson || rawJson.length < 2) return [];
   const headers = rawJson[1].map(h => String(h || '').trim().toUpperCase());
   let records = [], matriculasVistas = new Set();
 
@@ -422,7 +466,6 @@ function renderG2() {
   const sortedDValues = baseDesemp.map(item => item.val);
   const sortedDColors = baseDesemp.map(item => item.color);
 
-  // Reseta o ponteiro caso o filtro altere os dados
   uiState.selectedGaugeIndex = null;
 
   updateChart('chartG2Desempenho', 'doughnut', sortedDKeys, [{ data: sortedDValues, backgroundColor: sortedDColors }]);
@@ -469,7 +512,6 @@ function renderG2Table() {
   renderPagination('g2-pagination', uiState.g2.page, maxPage, 'g2');
 }
 
-// Plugin customizado para desenhar o ponteiro do velocímetro ao clicar
 const gaugeNeedlePlugin = {
   id: 'gaugeNeedle',
   afterDatasetDraw(chart) {
@@ -491,7 +533,6 @@ const gaugeNeedlePlugin = {
     ctx.translate(cx, cy);
     ctx.rotate(angle);
 
-    // Desenha a agulha do ponteiro
     ctx.beginPath();
     ctx.moveTo(0, -4);
     ctx.lineTo(radius, 0);
@@ -499,7 +540,6 @@ const gaugeNeedlePlugin = {
     ctx.fillStyle = '#0f172a';
     ctx.fill();
 
-    // Desenha o pino central
     ctx.beginPath();
     ctx.arc(0, 0, 8, 0, Math.PI * 2);
     ctx.fillStyle = '#0f172a';
@@ -510,7 +550,6 @@ const gaugeNeedlePlugin = {
 
     ctx.restore();
 
-    // Exibe o valor e o nível no centro da base do velocímetro
     const label = chart.data.labels[idx];
     const val = chart.data.datasets[0].data[idx];
     ctx.save();

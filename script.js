@@ -328,7 +328,7 @@ function renderG1() {
   const sKeys = Object.keys(sC).sort();
   updateChart('chartG1Series', 'bar', sKeys, [{ label: 'Alunos', data: sKeys.map(k=>sC[k]), backgroundColor: '#0f172a' }]);
   
-  updateChart('chartG1Desemp', 'pie', ['NL','N1','N2','N3'], [{ data: [nNL, nN1, nN2, nN3], backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]);
+  updateChart('chartG1Desemp', 'doughnut', ['NL','N1','N2','N3'], [{ data: [nNL, nN1, nN2, nN3], backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]);
 
   renderG1Table();
 }
@@ -408,7 +408,7 @@ function renderG2() {
   updateChart('chartG2Zonas', 'doughnut', zKeys, [{ data: zKeys.map(k=>zC[k]), backgroundColor: zColors }]);
 
   const dKeys = ['NL','N1','N2','N3'];
- updateChart('chartG2Desempenho', 'pie', dKeys, [{ data: dKeys.map(k=>dC[k]||0), backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]);
+ updateChart('chartG2Desempenho', 'doughnut', dKeys, [{ data: dKeys.map(k=>dC[k]||0), backgroundColor: ['#ef4444','#f59e0b','#3b82f6','#10b981'] }]);
   const summaryContainer = document.getElementById('g2-teacher-summary');
   if (summaryContainer) {
     summaryContainer.innerHTML = pKeys.map(k => `

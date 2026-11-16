@@ -2,7 +2,7 @@ const ZONA_COLORS = { 'SUDESTE': '#facc15', 'LESTE': '#3b82f6', 'SUL': '#22c55e'
 const DESEMPENHOS_PERMITIDOS = ['NL', 'N1', 'N2', 'N3'];
 
 // COLE AQUI A URL DO SEU GOOGLE APPS SCRIPT IMPLANTADO COMO APP DA WEB:
-const GOOGLE_SHEETS_API_URL = 'COLE_AQUI_SUA_URL_DO_APPS_SCRIPT';
+const GOOGLE_SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbzYykrK0jBsGAU_ZUe7he0lVfMnErKr-lJrDqhmHxMp4XiZEavhPAeItOAzMVggPVaKXg/exec';
 
 const DB_NAME = 'EduPainelDB';
 const DB_VERSION = 1;

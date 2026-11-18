@@ -1,423 +1,247 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gestão Thayane — Cockpit Executivo DEI 2027</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; background-color: #F1F5F9; color: #0F172A; }
-    .exec-card { background: #FFFFFF; border: 1px solid #E2E8F0; transition: all 0.2s ease; }
-    .exec-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -6px rgba(15, 23, 42, 0.1); }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Desempenho</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
-<body class="p-3 md:p-6">
+<body class="bg-light">
 
-  <!-- FAIXA 0: CABEÇALHO DA CHEFIA -->
-  <div class="bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 text-white rounded-2xl p-6 md:p-8 mb-6 shadow-lg border border-slate-800">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 text-xs font-bold uppercase tracking-wider mb-2">
-          ★ Cockpit Executivo da Chefia • DEI SEMEC
+  <header class="top-header text-white">
+    <div class="container-fluid px-4 py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+      
+      <div class="d-flex align-items-center gap-4">
+        <div class="brand d-flex align-items-center gap-2">
+          <i class="bi bi-bar-chart-fill fs-4"></i>
+          <h5 class="mb-0 fw-bold">Painel Desempenho</h5>
         </div>
-        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Gestão Thayane Freitas — Visão 360°</h1>
-        <p class="text-slate-300 text-xs md:text-sm mt-1 max-w-2xl">
-          Comando centralizado da Divisão de Educação Inclusiva: indicadores da rede, governança administrativa da equipe, memorandos, férias, formação e demandas jurídicas.
-        </p>
+        
+        <ul class="nav nav-pills custom-tabs" id="mainTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-guia1" data-bs-toggle="tab" data-bs-target="#guia1" type="button" role="tab">
+              ALUNOS NL A N3 (4° AO 9°)
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-guia2" data-bs-toggle="tab" data-bs-target="#guia2" type="button" role="tab">
+              PSICOLER
+            </button>
+          </li>
+        </ul>
       </div>
-      <div class="flex flex-col items-start md:items-end gap-2">
-        <span id="statusApiThay" class="text-xs px-3 py-1.5 rounded-xl bg-white/10 text-emerald-300 font-semibold">
-          ● Sincronizando indicadores...
-        </span>
-        <span class="text-[11px] text-slate-400">Planejamento Estratégico 2027</span>
-      </div>
-    </div>
 
-    <!-- FAIXA 1: 4 KPIS MACRO AO VIVO -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
-      <div class="bg-white/5 rounded-xl p-4 border border-white/10">
-        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Unidades na Rede</div>
-        <div id="thayUnidades" class="text-2xl md:text-3xl font-extrabold text-white mt-1">--</div>
-        <div class="text-[11px] text-blue-300 mt-0.5">Escolas e CMEIs mapeados</div>
-      </div>
-      <div class="bg-white/5 rounded-xl p-4 border border-white/10">
-        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Demanda Total AAI</div>
-        <div id="thayAAI" class="text-2xl md:text-3xl font-extrabold text-white mt-1">--</div>
-        <div id="thayAAISub" class="text-[11px] text-indigo-300 mt-0.5">Manhã: -- | Tarde: --</div>
-      </div>
-      <div class="bg-white/5 rounded-xl p-4 border border-white/10">
-        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Salas AEE Ativas</div>
-        <div class="flex items-baseline gap-2 mt-1">
-          <span id="thayAEE" class="text-2xl md:text-3xl font-extrabold text-emerald-400">--</span>
-          <span id="thayAEESem" class="text-[11px] font-bold text-amber-300">(-- s/ prof.)</span>
+      <div class="d-flex align-items-center gap-3">
+        <div class="text-end d-none d-md-block me-3">
+          <small class="d-block text-white-50 lh-1">Última Atualização</small>
+          <strong id="last-update-date" class="fs-7 text-white">Nenhum dado</strong>
         </div>
-        <div class="text-[11px] text-slate-300 mt-0.5">Cobertura especializada</div>
+        <label class="btn btn-primary btn-sm mb-0 d-flex align-items-center gap-2 shadow-sm" for="file-input">
+          <i class="bi bi-cloud-upload-fill"></i> CARREGAR PLANILHA XLSX
+        </label>
+        <input type="file" id="file-input" accept=".xlsx, .xls" class="d-none">
       </div>
-      <div class="bg-white/5 rounded-xl p-4 border border-white/10">
-        <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Alertas MP-PI / Judicial</div>
-        <div class="flex items-baseline gap-2 mt-1">
-          <span id="thayMP" class="text-2xl md:text-3xl font-extrabold text-rose-400">--</span>
-          <span class="text-[11px] text-slate-300">em análise</span>
-        </div>
-        <div id="thayMPRes" class="text-[11px] text-emerald-300 mt-0.5">-- resolvidos</div>
-      </div>
+      
     </div>
-  </div>
+  </header>
 
-  <!-- FAIXA 2: GOVERNANÇA INTERNA & CONTROLES ADMINISTRATIVOS DA CHEFIA -->
-  <div class="mb-6">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-sm font-extrabold uppercase tracking-wider text-slate-700">1. Governança Interna & Controles da Equipe DEI</h2>
-      <span class="text-xs text-slate-500">Fluxo Administrativo & RH</span>
-    </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <a href="https://docs.google.com/spreadsheets/d/1ZEyNwcSAo4TINLKzmySL3vxggsiYzqF4SPI4Fmj7rTs/edit?usp=drivesdk" target="_blank" class="exec-card rounded-2xl p-5 border-t-4 border-t-blue-600 flex flex-col justify-between group">
-        <div>
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-xl">📑</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700">Expediente</span>
+  <main class="container-fluid px-4 py-4">
+    
+    <div id="alert-container"></div>
+
+    <div class="tab-content" id="mainTabContent">
+      
+      <!-- ==============================================
+           GUIA 1: ALUNOS NL A N3 (4° AO 9°) - SEM ZONA
+           ============================================== -->
+      <div class="tab-pane fade show active" id="guia1" role="tabpanel" tabindex="0">
+        
+        <div class="card card-custom mb-4">
+          <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-funnel-fill text-primary me-2"></i>Filtros de Desempenho (Múltipla Seleção)</h6>
+            <button class="btn btn-sm btn-light text-secondary border" onclick="resetFilters('g1')">Limpar Filtros</button>
           </div>
-          <h3 class="font-bold text-slate-900 text-sm group-hover:text-blue-700">Controle de Memorandos & Despachos SEI</h3>
-          <p class="text-xs text-slate-500 mt-1">Numeração oficial de memorandos de contratação AAI, processos SEI e despachos enviados.</p>
-        </div>
-        <div class="mt-3 pt-2 border-t border-slate-100 text-xs font-bold text-blue-600 flex justify-between">
-          <span>Abrir Controle DEI</span><span>↗</span>
-        </div>
-      </a>
-
-      <a href="https://docs.google.com/spreadsheets/d/1ZEyNwcSAo4TINLKzmySL3vxggsiYzqF4SPI4Fmj7rTs/edit?usp=drivesdk" target="_blank" class="exec-card rounded-2xl p-5 border-t-4 border-t-emerald-500 flex flex-col justify-between group">
-        <div>
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-xl">🏖️</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700">Equipe DEI</span>
-          </div>
-          <h3 class="font-bold text-slate-900 text-sm group-hover:text-emerald-700">Controle de Férias & Escala Técnica</h3>
-          <p class="text-xs text-slate-500 mt-1">Períodos programados, saldos de dias e cobertura das técnicas e analistas da divisão.</p>
-        </div>
-        <div class="mt-3 pt-2 border-t border-slate-100 text-xs font-bold text-emerald-600 flex justify-between">
-          <span>Consultar Férias</span><span>↗</span>
-        </div>
-      </a>
-
-      <a href="https://docs.google.com/spreadsheets/d/1ZEyNwcSAo4TINLKzmySL3vxggsiYzqF4SPI4Fmj7rTs/edit?usp=drivesdk" target="_blank" class="exec-card rounded-2xl p-5 border-t-4 border-t-indigo-500 flex flex-col justify-between group">
-        <div>
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-xl">📊</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700">Produtividade</span>
-          </div>
-          <h3 class="font-bold text-slate-900 text-sm group-hover:text-indigo-700">Relatório Semanal & Superintendentes</h3>
-          <p class="text-xs text-slate-500 mt-1">Acompanhamento das entregas semanais por técnica e visitas conjuntas nas unidades.</p>
-        </div>
-        <div class="mt-3 pt-2 border-t border-slate-100 text-xs font-bold text-indigo-600 flex justify-between">
-          <span>Ver Relatórios</span><span>↗</span>
-        </div>
-      </a>
-
-      <a href="https://docs.google.com/spreadsheets/d/1u2DoAcwsJyIdJGFGIflMn0-6Zhp-X-HO-RegSIY5Gt0/edit?usp=sharing" target="_blank" class="exec-card rounded-2xl p-5 border-t-4 border-t-amber-500 flex flex-col justify-between group">
-        <div>
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-xl">✍️</span>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800">Autorizações</span>
-          </div>
-          <h3 class="font-bold text-slate-900 text-sm group-hover:text-amber-700">Autorização de Contratação AAI & CIEE</h3>
-          <p class="text-xs text-slate-500 mt-1">Controle executivo de vagas autorizadas e encaminhamentos de novos auxiliares.</p>
-        </div>
-        <div class="mt-3 pt-2 border-t border-slate-100 text-xs font-bold text-amber-600 flex justify-between">
-          <span>Abrir Autorizações</span><span>↗</span>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- FAIXA 3: ACESSO INTEGRADO A TODOS OS MÓDULOS DO ECOSSISTEMA DEI 2027 -->
-  <div class="mb-6">
-    <div class="flex items-center justify-between mb-3">
-      <h2 class="text-sm font-extrabold uppercase tracking-wider text-slate-700">2. Ecossistema Integrado DEI 2027 (Acesso Direto)</h2>
-      <span class="text-xs text-slate-500">Todos os Setores & Painéis</span>
-    </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-      <a href="https://sites.google.com/view/gestaodeiformacao/sala-de-situa%C3%A7%C3%A3o" target="_top" class="exec-card rounded-xl p-4 flex items-center gap-3 hover:border-blue-600">
-        <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-lg font-bold shrink-0">🎯</div>
-        <div>
-          <div class="font-bold text-slate-900 text-sm">Sala de Situação</div>
-          <div class="text-[11px] text-slate-500">Buscador Escola & Prof. AEE</div>
-        </div>
-      </a>
-
-      <a href="https://sites.google.com/view/gestaodeiformacao/central-operacional" target="_top" class="exec-card rounded-xl p-4 flex items-center gap-3 hover:border-indigo-600">
-        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg font-bold shrink-0">🗄️</div>
-        <div>
-          <div class="font-bold text-slate-900 text-sm">Central Operacional</div>
-          <div class="text-[11px] text-slate-500">14 Bases Técnicas Unificadas</div>
-        </div>
-      </a>
-
-      <a href="https://sites.google.com/view/gestaodeiformacao/forma%C3%A7%C3%A3o-2027" target="_top" class="exec-card rounded-xl p-4 flex items-center gap-3 hover:border-emerald-600">
-        <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-lg font-bold shrink-0">🎓</div>
-        <div>
-          <div class="font-bold text-slate-900 text-sm">Formação 2027</div>
-          <div class="text-[11px] text-slate-500">20+ Cursos, AEE, AAI & Libras</div>
-        </div>
-      </a>
-
-      <a href="https://sites.google.com/view/gestaodeiformacao/documentos-2027" target="_top" class="exec-card rounded-xl p-4 flex items-center gap-3 hover:border-amber-500">
-        <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg font-bold shrink-0">📜</div>
-        <div>
-          <div class="font-bold text-slate-900 text-sm">Documentos & Protocolos</div>
-          <div class="text-[11px] text-slate-500">Portarias, PAEE/PEI & Crises</div>
-        </div>
-      </a>
-
-      <a href="https://sites.google.com/view/gestaodeiformacao/atendimento-2027" target="_top" class="exec-card rounded-xl p-4 flex items-center gap-3 hover:border-purple-600">
-        <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg font-bold shrink-0">📞</div>
-        <div>
-          <div class="font-bold text-slate-900 text-sm">Atendimento & Disque</div>
-          <div class="text-[11px] text-slate-500">Triagem, Registro & Agenda</div>
-        </div>
-      </a>
-
-      <a href="https://sites.google.com/view/gestaodeiformacao/dashboard" target="_top" class="exec-card rounded-xl p-4 flex items-center gap-3 hover:border-slate-700">
-        <div class="w-10 h-10 rounded-xl bg-slate-200 text-slate-800 flex items-center justify-center text-lg font-bold shrink-0">📈</div>
-        <div>
-          <div class="font-bold text-slate-900 text-sm">Dashboard Geral</div>
-          <div class="text-[11px] text-slate-500">Indicadores Consolidados</div>
-        </div>
-      </a>
-
-      <a href="https://sites.google.com/view/gestaodeiformacao/dashboard_mp" target="_top" class="exec-card rounded-xl p-4 flex items-center gap-3 hover:border-rose-600">
-        <div class="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-lg font-bold shrink-0">⚖️</div>
-        <div>
-          <div class="font-bold text-slate-900 text-sm">Dashboard MP-PI</div>
-          <div class="text-[11px] text-slate-500">Monitoramento Judicial</div>
-        </div>
-      </a>
-
-      <a href="https://sites.google.com/view/gestaodeiformacao/dashboard_super" target="_top" class="exec-card rounded-xl p-4 flex items-center gap-3 hover:border-sky-600">
-        <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-lg font-bold shrink-0">🧭</div>
-        <div>
-          <div class="font-bold text-slate-900 text-sm">Dashboard Super</div>
-          <div class="text-[11px] text-slate-500">Visitas Superintendências</div>
-        </div>
-      </a>
-    </div>
-  </div>
-
-  <!-- FAIXA 4: MURAL INTERATIVO DE DIRETRIZES & RECADOS DA CHEFIA -->
-  <div class="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-xs">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4 mb-5">
-      <div>
-        <h2 class="text-base md:text-lg font-bold text-slate-900">Mural de Diretrizes, Decisões & Recados da Semana</h2>
-        <p class="text-xs text-slate-500">Crie cards persistentes para a equipe. Tudo fica salvo automaticamente na nuvem da DEI.</p>
-      </div>
-      <div class="flex gap-1.5 bg-slate-100 p-1 rounded-xl self-start">
-        <button onclick="filtrarMural('TODOS', this)" class="btn-mural px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-xs cursor-pointer">Todos</button>
-        <button onclick="filtrarMural('URGENTE', this)" class="btn-mural px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 cursor-pointer">🔴 Urgentes</button>
-        <button onclick="filtrarMural('SEMANA', this)" class="btn-mural px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 cursor-pointer">📅 Semana</button>
-        <button onclick="filtrarMural('RECADO', this)" class="btn-mural px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 cursor-pointer">💬 Recados</button>
-      </div>
-    </div>
-
-    <!-- FORMULÁRIO DE CRIAÇÃO / EDIÇÃO DE CARD -->
-    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6">
-      <input type="hidden" id="editCardId" value="" />
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-        <div>
-          <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Tipo / Prioridade</label>
-          <select id="cardCategoria" class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs md:text-sm font-medium outline-none focus:border-blue-600">
-            <option value="URGENTE">🔴 Decisão Urgente / Hoje</option>
-            <option value="SEMANA" selected>📅 Meta / Pauta da Semana</option>
-            <option value="RECADO">💬 Recado / Aviso Geral</option>
-          </select>
-        </div>
-        <div class="sm:col-span-2">
-          <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Título do Card</label>
-          <input type="text" id="cardTitulo" placeholder="Ex: Prazo MP-PI Sexta-feira / Reunião Superintendentes..." class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs md:text-sm outline-none focus:border-blue-600" />
-        </div>
-      </div>
-      <div class="mb-3">
-        <label class="block text-[11px] font-bold uppercase text-slate-600 mb-1">Descrição / Orientação para a Equipe</label>
-        <textarea id="cardMensagem" rows="2" placeholder="Escreva os detalhes, responsáveis ou encaminhamentos..." class="w-full p-3 rounded-xl border border-slate-300 bg-white text-xs md:text-sm outline-none focus:border-blue-600"></textarea>
-      </div>
-      <div class="flex items-center justify-end gap-2">
-        <button onclick="cancelarEdicao()" id="btnCancelarEdit" class="hidden px-4 py-2 rounded-xl border border-slate-300 text-slate-600 text-xs font-bold hover:bg-slate-100 cursor-pointer">
-          Cancelar Edição
-        </button>
-        <button onclick="salvarCardMural()" id="btnSalvarCard" class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs transition cursor-pointer">
-          + Publicar Card no Mural
-        </button>
-      </div>
-    </div>
-
-    <!-- GRID DOS CARDZINHOS SALVOS -->
-    <div id="gridMuralCards" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div class="text-xs text-slate-400 italic">Carregando mural da chefia...</div>
-    </div>
-  </div>
-
-  <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycby00XF4dX0my10DjVnZkdYqyK4fUBJgCh7O68bqcFi_yYCN-u8WaxsXh8WNp0cBT1YL/exec';
-    let LISTA_CARDS = [];
-    let filtroMuralAtual = 'TODOS';
-    let cardConfirmandoExclusao = null;
-
-    async function carregarKpisThay() {
-      try {
-        const res = await fetch(API_URL + '?t=' + new Date().getTime(), { cache: 'no-store' });
-        const json = await res.json();
-        if (json.status === 'ok') {
-          const k = json.data.kpis;
-          document.getElementById('thayUnidades').textContent = k.totalUnidades || 0;
-          document.getElementById('thayAAI').textContent = (k.totalNecessidadeAAI || 0).toLocaleString('pt-BR');
-          document.getElementById('thayAAISub').textContent = `Manhã: ${k.totalAAIManha} | Tarde: ${k.totalAAITarde}`;
-          document.getElementById('thayAEE').textContent = k.salasAEEComProf || 0;
-          document.getElementById('thayAEESem').textContent = `(${k.salasAEESemProf || 0} s/ prof.)`;
-          document.getElementById('thayMP').textContent = k.processosMPPendentes || 0;
-          document.getElementById('thayMPRes').textContent = `${k.processosMPResolvidos || 0} resolvidos`;
-          document.getElementById('statusApiThay').textContent = '● Bases Sincronizadas em Tempo Real';
-
-          LISTA_CARDS = json.data.mural || [];
-          renderMural();
-        }
-      } catch (e) {
-        document.getElementById('statusApiThay').textContent = '● Modo Offline (verifique API)';
-      }
-    }
-
-    function filtrarMural(cat, btn) {
-      filtroMuralAtual = cat;
-      document.querySelectorAll('.btn-mural').forEach(b => {
-        b.className = 'btn-mural px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 cursor-pointer';
-      });
-      btn.className = 'btn-mural px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-900 shadow-xs cursor-pointer';
-      renderMural();
-    }
-
-    function renderMural() {
-      const grid = document.getElementById('gridMuralCards');
-      const filtrados = LISTA_CARDS.filter(c => filtroMuralAtual === 'TODOS' || c.categoria === filtroMuralAtual);
-
-      if (filtrados.length === 0) {
-        grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">Nenhum card publicado neste filtro ainda. Crie o primeiro acima!</div>`;
-        return;
-      }
-
-      const estilos = {
-        URGENTE: { borda: 'border-l-4 border-l-rose-500 bg-rose-50/30', badge: 'bg-rose-100 text-rose-800', label: '🔴 Urgente' },
-        SEMANA:  { borda: 'border-l-4 border-l-blue-600 bg-blue-50/20', badge: 'bg-blue-100 text-blue-800', label: '📅 Semana' },
-        RECADO:  { borda: 'border-l-4 border-l-emerald-500 bg-emerald-50/20', badge: 'bg-emerald-100 text-emerald-800', label: '💬 Recado' }
-      };
-
-      grid.innerHTML = filtrados.map(c => {
-        const st = estilos[c.categoria] || estilos.SEMANA;
-        const concluido = c.status === 'CONCLUIDO';
-        const aguardandoConfirmacao = cardConfirmandoExclusao === c.id;
-
-        return `
-          <div class="border border-slate-200 ${st.borda} rounded-xl p-4 flex flex-col justify-between ${concluido ? 'opacity-60' : ''}">
-            <div>
-              <div class="flex items-center justify-between gap-2 mb-2">
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${st.badge}">${st.label}</span>
-                <span class="text-[10px] text-slate-400 font-medium">${c.data}</span>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-2">
+                <label class="form-label small text-muted">Série</label>
+                <div class="dropdown">
+                  <button class="form-select form-select-sm text-start text-truncate" type="button" data-bs-toggle="dropdown" id="btn-g1-serie">TODOS</button>
+                  <ul class="dropdown-menu w-100 shadow-sm custom-scroll" id="g1-serie-list" onclick="event.stopPropagation()"></ul>
+                </div>
               </div>
-              <h4 class="font-bold text-slate-900 text-sm ${concluido ? 'line-through' : ''}">${c.titulo}</h4>
-              <p class="text-xs text-slate-600 mt-1.5 whitespace-pre-line leading-relaxed">${c.mensagem}</p>
-            </div>
-            <div class="mt-4 pt-2.5 border-t border-slate-200/70 flex items-center justify-between text-[11px] font-semibold">
-              <button onclick="alternarStatusCard('${c.id}', '${concluido ? 'ATIVO' : 'CONCLUIDO'}')" class="text-emerald-700 hover:underline cursor-pointer">
-                ${concluido ? '↩ Reabrir' : '✓ Concluir'}
-              </button>
-              <div class="flex items-center gap-3">
-                <button onclick="prepararEdicao('${c.id}')" class="text-blue-600 hover:underline cursor-pointer">Editar</button>
-                <button onclick="excluirCard('${c.id}')" class="${aguardandoConfirmacao ? 'bg-rose-600 text-white px-2 py-0.5 rounded-md font-bold' : 'text-rose-600 hover:underline'} cursor-pointer transition">
-                  ${aguardandoConfirmacao ? 'Confirmar exclusão?' : '🗑️ Excluir'}
-                </button>
+              <div class="col-md-2">
+                <label class="form-label small text-muted">Desempenho</label>
+                <div class="dropdown">
+                  <button class="form-select form-select-sm text-start text-truncate" type="button" data-bs-toggle="dropdown" id="btn-g1-desemp">TODOS</button>
+                  <ul class="dropdown-menu w-100 shadow-sm custom-scroll" id="g1-desemp-list" onclick="event.stopPropagation()"></ul>
+                </div>
               </div>
+              <div class="col-md-2"><label class="form-label small text-muted">PCD</label><select id="g1-pcd" class="form-select form-select-sm g1-filter"><option value="">TODOS</option><option value="SIM">SIM</option><option value="NÃO">NÃO</option></select></div>
+              <div class="col-md-3"><label class="form-label small text-muted">Unidade de Ensino</label><select id="g1-escola" class="form-select form-select-sm g1-filter"></select></div>
+              <div class="col-md-1"><label class="form-label small text-muted">Gênero</label><select id="g1-genero" class="form-select form-select-sm g1-filter"></select></div>
+              <div class="col-md-2"><label class="form-label small text-muted">Turma</label><select id="g1-turma" class="form-select form-select-sm g1-filter"></select></div>
             </div>
           </div>
-        `;
-      }).join('');
-    }
+        </div>
 
-    async function enviarAcaoMural(payload) {
-      const btn = document.getElementById('btnSalvarCard');
-      btn.disabled = true;
-      btn.textContent = 'Atualizando...';
-      try {
-        const res = await fetch(API_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        const json = await res.json();
-        if (json.status === 'ok') {
-          LISTA_CARDS = json.cards || [];
-          cardConfirmandoExclusao = null;
-          renderMural();
-        }
-      } finally {
-        btn.disabled = false;
-        btn.textContent = '+ Publicar Card no Mural';
-      }
-    }
+        <div class="row row-cols-2 row-cols-md-4 row-cols-xl-7 g-3 mb-4">
+          <div class="col"><div class="card-kpi bg-dark text-white h-100"><div class="title">Total de Alunos</div><div class="value" id="g1-total">0</div></div></div>
+          <div class="col"><div class="card-kpi text-danger border-start border-danger border-4 h-100"><div class="title text-muted">Desempenho NL</div><div class="value text-dark" id="g1-nl">0</div></div></div>
+          <div class="col"><div class="card-kpi text-warning border-start border-warning border-4 h-100"><div class="title text-muted">Desempenho N1</div><div class="value text-dark" id="g1-n1">0</div></div></div>
+          <div class="col"><div class="card-kpi text-info border-start border-info border-4 h-100"><div class="title text-muted">Desempenho N2</div><div class="value text-dark" id="g1-n2">0</div></div></div>
+          <div class="col"><div class="card-kpi text-success border-start border-success border-4 h-100"><div class="title text-muted">Desempenho N3</div><div class="value text-dark" id="g1-n3">0</div></div></div>
+          <div class="col"><div class="card-kpi border-start border-primary border-4 h-100"><div class="title text-muted">PCD SIM</div><div class="value text-primary" id="g1-pcd-sim">0</div></div></div>
+          <div class="col"><div class="card-kpi border-start border-secondary border-4 h-100"><div class="title text-muted">PCD NÃO</div><div class="value text-secondary" id="g1-pcd-nao">0</div></div></div>
+        </div>
 
-    async function salvarCardMural() {
-      const id = document.getElementById('editCardId').value;
-      const categoria = document.getElementById('cardCategoria').value;
-      const titulo = document.getElementById('cardTitulo').value.trim();
-      const mensagem = document.getElementById('cardMensagem').value.trim();
-      if (!titulo || !mensagem) return;
+        <div class="row g-3 mb-4">
+          <div class="col-md-8">
+            <div class="card card-custom h-100">
+              <div class="card-header bg-white border-0 pt-3"><h6 class="fw-bold mb-0">Alunos por Série</h6></div>
+              <div class="card-body chart-wrapper"><canvas id="chartG1Series"></canvas></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card card-custom h-100">
+              <div class="card-header bg-white border-0 pt-3"><h6 class="fw-bold mb-0">Desempenho Geral</h6></div>
+              <div class="card-body chart-wrapper"><canvas id="chartG1Desemp"></canvas></div>
+            </div>
+          </div>
+        </div>
 
-      await enviarAcaoMural({
-        action: id ? 'UPDATE' : 'CREATE',
-        id: id,
-        categoria: categoria,
-        titulo: titulo,
-        mensagem: mensagem
-      });
+        <div class="card card-custom">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0">Registros (4º ao 9º Ano)</h6>
+            <div class="d-flex gap-2">
+              <input type="text" id="g1-search" class="form-control form-control-sm" placeholder="Buscar aluno...">
+              <select id="g1-limit" class="form-select form-select-sm w-auto"><option value="15">15 / pág</option><option value="50">50 / pág</option><option value="100">100 / pág</option></select>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-sm">
+              <thead class="table-light"><tr><th>Matrícula</th><th>Aluno</th><th>Série</th><th>Turma</th><th>Desempenho</th><th>PCD</th><th>Unidade de Ensino</th></tr></thead>
+              <tbody id="g1-tbody"></tbody>
+            </table>
+          </div>
+          <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <span class="small text-muted" id="g1-table-info"></span>
+            <ul class="pagination pagination-sm mb-0" id="g1-pagination"></ul>
+          </div>
+        </div>
+      </div>
 
-      cancelarEdicao();
-    }
+      <!-- ==============================================
+           GUIA 2: PSICOLER - COM ZONAS (Lidas da Planilha)
+           ============================================== -->
+      <div class="tab-pane fade" id="guia2" role="tabpanel" tabindex="0">
+        
+        <div class="card card-custom mb-4">
+          <div class="card-header bg-white border-bottom-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-funnel-fill text-primary me-2"></i>Filtros PSICOLER (Múltipla Seleção)</h6>
+            <button class="btn btn-sm btn-light text-secondary border" onclick="resetFilters('g2')">Limpar Filtros</button>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-2"><label class="form-label small text-muted">Psicopedagogo(a)</label><select id="g2-psico" class="form-select form-select-sm g2-filter"></select></div>
+              <div class="col-md-2">
+                <label class="form-label small text-muted">Série</label>
+                <div class="dropdown">
+                  <button class="form-select form-select-sm text-start text-truncate" type="button" data-bs-toggle="dropdown" id="btn-g2-serie">TODOS</button>
+                  <ul class="dropdown-menu w-100 shadow-sm custom-scroll" id="g2-serie-list" onclick="event.stopPropagation()"></ul>
+                </div>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small text-muted">Desempenho</label>
+                <div class="dropdown">
+                  <button class="form-select form-select-sm text-start text-truncate" type="button" data-bs-toggle="dropdown" id="btn-g2-desemp">TODOS</button>
+                  <ul class="dropdown-menu w-100 shadow-sm custom-scroll" id="g2-desemp-list" onclick="event.stopPropagation()"></ul>
+                </div>
+              </div>
+              <div class="col-md-1"><label class="form-label small text-muted">PCD</label><select id="g2-pcd" class="form-select form-select-sm g2-filter"><option value="">TODOS</option><option value="SIM">SIM</option><option value="NÃO">NÃO</option></select></div>
+              <div class="col-md-2"><label class="form-label small text-muted">Zona</label><select id="g2-zona" class="form-select form-select-sm g2-filter"></select></div>
+              <div class="col-md-3"><label class="form-label small text-muted">Unidade de Ensino</label><select id="g2-escola" class="form-select form-select-sm g2-filter"></select></div>
+            </div>
+            <div class="row g-3 mt-1">
+              <div class="col-md-2"><label class="form-label small text-muted">Turma</label><select id="g2-turma" class="form-select form-select-sm g2-filter"></select></div>
+              <div class="col-md-2"><label class="form-label small text-muted">Gênero</label><select id="g2-genero" class="form-select form-select-sm g2-filter"></select></div>
+            </div>
+          </div>
+        </div>
 
-    function prepararEdicao(id) {
-      const c = LISTA_CARDS.find(x => x.id === id);
-      if (!c) return;
-      document.getElementById('editCardId').value = c.id;
-      document.getElementById('cardCategoria').value = c.categoria;
-      document.getElementById('cardTitulo').value = c.titulo;
-      document.getElementById('cardMensagem').value = c.mensagem;
-      document.getElementById('btnSalvarCard').textContent = 'Salvar Alterações';
-      document.getElementById('btnCancelarEdit').classList.remove('hidden');
-      document.getElementById('cardTitulo').focus();
-    }
+        <div class="row g-3 mb-4">
+          <div class="col-md-3"><div class="card-kpi bg-purple text-white"><div class="title text-white-50">Total PSICOLER</div><div class="value" id="g2-total">0</div></div></div>
+          <div class="col-md-3"><div class="card-kpi border-start border-primary border-4"><div class="title text-muted">PCD SIM</div><div class="value text-primary" id="g2-pcd-sim">0</div></div></div>
+          <div class="col-md-3"><div class="card-kpi border-start border-secondary border-4"><div class="title text-muted">PCD NÃO</div><div class="value text-secondary" id="g2-pcd-nao">0</div></div></div>
+        </div>
 
-    function cancelarEdicao() {
-      document.getElementById('editCardId').value = '';
-      document.getElementById('cardTitulo').value = '';
-      document.getElementById('cardMensagem').value = '';
-      document.getElementById('btnSalvarCard').textContent = '+ Publicar Card no Mural';
-      document.getElementById('btnCancelarEdit').classList.add('hidden');
-    }
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <div class="card card-custom h-100">
+              <div class="card-header bg-white border-0 pt-3"><h6 class="fw-bold mb-0">Atendimentos por Psicopedagogo(a)</h6></div>
+              <div class="card-body chart-wrapper"><canvas id="chartG2Psico"></canvas></div>
+            </div>
+          </div>
+          <div class="col-md-3">
+             <div class="card card-custom h-100">
+              <div class="card-header bg-white border-0 pt-3"><h6 class="fw-bold mb-0">Por Zona</h6></div>
+              <div class="card-body chart-wrapper"><canvas id="chartG2Zonas"></canvas></div>
+            </div>
+          </div>
+          <div class="col-md-3">
+             <div class="card card-custom h-100">
+              <div class="card-header bg-white border-0 pt-3"><h6 class="fw-bold mb-0">Por Desempenho</h6></div>
+              <div class="card-body chart-wrapper"><canvas id="chartG2Desempenho"></canvas></div>
+            </div>
+          </div>
+        </div>
 
-    async function alternarStatusCard(id, novoStatus) {
-      await enviarAcaoMural({ action: 'STATUS', id: id, status: novoStatus });
-    }
+        <!-- RESUMO POR PSICOPEDAGOGO -->
+        <div class="card card-custom mb-4">
+          <div class="card-header bg-white border-bottom-0 pt-3 pb-2">
+            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-person-badge-fill text-primary me-2"></i>Resumo Geral por Psicopedagogo(a)</h6>
+          </div>
+          <div class="card-body pt-0">
+            <div id="g2-teacher-summary" class="row row-cols-2 row-cols-md-4 row-cols-xl-6 g-2 mt-1">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
 
-    async function excluirCard(id) {
-      if (cardConfirmandoExclusao !== id) {
-        cardConfirmandoExclusao = id;
-        renderMural();
-        setTimeout(() => {
-          if (cardConfirmandoExclusao === id) {
-            cardConfirmandoExclusao = null;
-            renderMural();
-          }
-        }, 3500);
-        return;
-      }
-      await enviarAcaoMural({ action: 'DELETE', id: id });
-    }
+        <div class="card card-custom">
+          <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0">Registros PSICOLER</h6>
+            <div class="d-flex gap-2">
+              <input type="text" id="g2-search" class="form-control form-control-sm" placeholder="Buscar aluno...">
+              <select id="g2-limit" class="form-select form-select-sm w-auto"><option value="15">15 / pág</option><option value="50">50 / pág</option><option value="100">100 / pág</option></select>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-sm">
+              <thead class="table-light"><tr><th>Psicopedagogo</th><th>Matrícula</th><th>Aluno</th><th>Série</th><th>Desempenho</th><th>PCD</th><th>Zona</th><th>Unidade de Ensino</th></tr></thead>
+              <tbody id="g2-tbody"></tbody>
+            </table>
+          </div>
+          <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <span class="small text-muted" id="g2-table-info"></span>
+            <ul class="pagination pagination-sm mb-0" id="g2-pagination"></ul>
+          </div>
+        </div>
 
-    carregarKpisThay();
-  </script>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
